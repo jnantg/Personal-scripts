@@ -1,6 +1,19 @@
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  SCRIPT                                                              ║
+# ║  Name     : EntraUserPull_Application.py                             ║
+# ║  Version  : 1.6                                                      ║     
+# ║  Date     : 2024-06-10                                               ║  
+# ║  Author   : Jonathan Neerup-Andersen  ·  jna@ntg.com                 ║
+# ║  License  : Free for non-commercial use (no warranty)                ║
+# ║  Notes    : Forks welcome. Do whatever you want, be free.            ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+
+
 import os, csv, requests
 from msal import ConfidentialClientApplication
 
+# TENANT_ID, CLIENT_ID, and CLIENT_SECRET should be set as environment variables. To run using application, see the script EntraUserPull_Delegation.py
 TENANT_ID = os.getenv("TENANT_ID")
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
@@ -33,7 +46,7 @@ while url:
     all_users.extend(data.get("value", []))
     url = data.get("@odata.nextLink")
 
-# Write CSV
+# Create CSV file with the output data
 with open("entra_users.csv", "w", newline="", encoding="utf-8") as f:
     writer = csv.DictWriter(
         f,

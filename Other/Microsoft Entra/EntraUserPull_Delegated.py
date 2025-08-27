@@ -1,7 +1,19 @@
-# EntraUserPull_Delegated.py
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║  SCRIPT                                                              ║
+# ║  Name     : EntraUserPull_Delegated.py                             ║
+# ║  Version  : 1.3                                                      ║     
+# ║  Date     : 2024-06-11                                               ║  
+# ║  Author   : Jonathan Neerup-Andersen  ·  jna@ntg.com                 ║
+# ║  License  : Free for non-commercial use (no warranty)                ║
+# ║  Notes    : Forks welcome. Do whatever you want, be free.            ║
+# ╚══════════════════════════════════════════════════════════════════════╝
+
+
+
 import os, csv, requests, msal, pathlib
 from msal_extensions import PersistedTokenCache, build_encrypted_persistence, FilePersistence
 
+# TENANT_ID and CLIENT_ID, should be set as environment variables. To run without user delegated permissions, see the script EntraUserPull_Application.py
 TENANT_ID = os.getenv("TENANT_ID")
 AUTHORITY  = f"https://login.microsoftonline.com/{TENANT_ID}"
 CLIENT_ID = os.getenv("CLIENT_ID")
