@@ -2,14 +2,14 @@
 
 #!/bin/sh
 # linux_assestment.sh is a script designed to be portable without reliance on dependencies or system packages to run.
-# Outputs to takeover_<hostname>_<timestamp>/ with SUMMARY.txt, report.html, CSVs, and .tgz 
-#
+# Outputs various reports with the names assestment_<hostname>_<timestamp>/ 
+# In the output folder summary.txt, report.html and various CSV files are created.
 # Env knobs:
-#   DURATION=300   sampling seconds for net top-talkers
+#   DURATION=300   sampling seconds for net top-talkers (Value can be between 60 and 3600 measures in seconds)
 #   INTERVAL=5     seconds between samples
-#   ENCRYPT=1      encrypt .tgz with AES-256 (needs openssl); PASS=... provides passphrase
-#   DNS_LOOKUP=1   reverse-dns enrichment for top-talkers (0 to disable)
-#   NO_PDF=1       skip PDF attempt
+#   ENCRYPT=1      encrypt .tgz (Will only work if OpenSSL is installed); PASS=X to provide passphrase
+#   DNS_LOOKUP=1   reverse-dns check for top-talkers (0 to disable)
+#   NO_PDF=1       skip PDF attempt (PDF might fail if missing dependencies)
 
 set -u
 umask 077
@@ -34,8 +34,8 @@ newline() { printf '\n'; }
 # ---------- setup ----------
 HOST="$(hostname 2>/dev/null || echo unknown)"
 TS="$(date +%Y%m%d_%H%M%S 2>/dev/null || date | tr ' :+' '__-_')"
-OUTDIR="takeover_${HOST}_${TS}"
-mkdir -p "$OUTDIR" || OUTDIR="./takeover_${TS}"
+OUTDIR="assessment_${HOST}_${TS}"
+mkdir -p "$OUTDIR" || OUTDIR="./assessment_${TS}"
 for d in files csv logs etc find services net agents security cron systemd login software ssh; do
   mkdir -p "$OUTDIR/$d"
 done
@@ -181,7 +181,7 @@ cap_sh "$OUTDIR/logrotate.txt" ' [ -r /etc/logrotate.conf ] && cat /etc/logrotat
 cap_sh "$OUTDIR/services/servers_processes.txt" 'ps auxww | egrep -i "nginx|apache2|httpd|lighttpd|mysqld|mariadbd|postgres|mongod|redis-server|rabbitmq|dockerd|containerd|crio|podman|kubelet" | grep -v egrep'
 if command -v ss >/dev/null 2>&1; then cap "$OUTDIR/services/listeners_brief.txt" ss -tunlp; elif command -v netstat >/dev/null 2>&1; then cap "$OUTDIR/services/listeners_brief.txt" netstat -tulnp; fi
 
-# ---------- monitoring / backup / log agents ----------
+# ---------- checking for monitoring / backup / log agents ----------
 AG="$OUTDIR/agents/agents.txt"; : >"$AG"
 for d in \
   /etc/datadog-agent /opt/datadog-agent \
@@ -198,7 +198,7 @@ for d in \
   /etc/td-agent /etc/fluent* /etc/td-agent-bit /etc/fluent-bit \
   ; do [ -e "$d" ] && printf '[FOUND] %s\n' "$d" >>"$AG"; done
 
-# ---------- cloud footprints ----------
+# ---------- checks for cloud footprints like docker, terraform etc ----------
 CF="$OUTDIR/cloud_footprints.txt"; : >"$CF"
 for p in /root /home/*; do
   [ -d "$p" ] || continue
@@ -230,7 +230,7 @@ while :; do
   now_s=$(date +%s 2>/dev/null || echo 0); [ "$now_s" -ge "$SAMP_END" ] && break; sleep "$INTERVAL" 2>/dev/null || break
 done
 
-# aggregate safely
+# Aggregates network samples into top talkers with counts, service names and reverse DNS
 if command -v awk >/dev/null 2>&1; then
   awk -F, 'NF==3 {k=$2","$3; c[k]++} END {print "remote_ip,remote_port,count"; for (k in c) print k "," c[k]}' "$SAMPLES_CSV" >"$TOP_CSV.tmp"
   {
@@ -245,7 +245,7 @@ if command -v awk >/dev/null 2>&1; then
   rm -f "$TOP_CSV.tmp"
 fi
 
-# ---------- login activity (14 days) ----------
+# ---------- Gathers 14 dayus of past login activity ----------
 LOGDIR="$OUTDIR/login"
 ACCEPTS="$LOGDIR/login_raw_accepts.csv"; : >"$ACCEPTS"
 FAILS="$LOGDIR/login_raw_fails.csv"; : >"$FAILS"
@@ -270,7 +270,7 @@ fi
 cap "$LOGDIR/last.txt" last
 cap "$LOGDIR/lastb.txt" lastb
 
-# ---------- quick SUMMARY.txt ----------
+# ---------- Creates a quick SUMMARY.txt ----------
 SUM="$OUTDIR/SUMMARY.txt"
 {
   echo "Host: $HOST"; echo "When: $(now_iso)"; echo
@@ -286,14 +286,17 @@ SUM="$OUTDIR/SUMMARY.txt"
   echo "Listening ports:"; if command -v ss >/dev/null 2>&1; then ss -tulpen; elif command -v netstat >/dev/null 2>&1; then netstat -tulpen; else echo "No ss/netstat"; fi
 } >"$SUM" 2>&1
 
-# ---------- HTML report ----------
+
+
+
+# ---------- Creating HTML report ----------
 HTML="$OUTDIR/report.html"
 add_pre() { t="$1"; f="$2"; echo "<section><h2>$(echo "$t" | html_escape)</h2><pre>" >>"$HTML"; [ -r "$f" ] && cat "$f" | html_escape >>"$HTML" || echo "(missing)" >>"$HTML"; echo "</pre></section>" >>"$HTML"; }
 {
 cat <<'EOF'
 <!DOCTYPE html>
 <html><head><meta charset="utf-8"/>
-<title>Takeover Report</title>
+<title>Assessment Report</title>
 <style>
   body{font:14px/1.4 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111;padding:24px;}
   header{margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #eee}
@@ -304,7 +307,7 @@ cat <<'EOF'
 </style>
 </head><body>
 EOF
-  echo "<header><h1>System Takeover Report</h1>"
+  echo "<header><h1>System Assessment Report</h1>"
   echo "<div class=small>Host: $(echo "$HOST" | html_escape) — Generated: $(now_iso)</div></header>"
   echo "<section><h2>Summary</h2><pre>"; cat "$SUM" | html_escape; echo "</pre></section>"
 } >"$HTML"
