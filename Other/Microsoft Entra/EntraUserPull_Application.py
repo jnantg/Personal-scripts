@@ -11,8 +11,9 @@
 
 
 import os, csv, requests
+from dotenv import load_dotenv
 from msal import ConfidentialClientApplication
-
+load_dotenv()
 # TENANT_ID, CLIENT_ID, and CLIENT_SECRET should be set as environment variables. To run using application, see the script EntraUserPull_Delegation.py
 TENANT_ID = os.getenv("TENANT_ID")
 CLIENT_ID = os.getenv("CLIENT_ID")

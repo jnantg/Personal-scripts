@@ -9,12 +9,13 @@
 # ╚══════════════════════════════════════════════════════════════════════╝
 
 import os, csv, requests
-
+from dotenv import load_dotenv
 from msal import ConfidentialClientApplication
+load_dotenv()
 
 # ── Configuration ──────────────────────────────────────────────────────
 # Set these env vars: TENANT_ID, CLIENT_ID, CLIENT_SECRET
-GROUP_NAME = os.getenv("GROUP_NAME", "DK-TEST-GROUP-01")  #Single entry or comma seperated list to pull users from multiple groups
+GROUP_NAME = os.getenv("GROUP_NAME", "entra-mu-bc365-users-us09")  #Single entry or comma seperated list to pull users from multiple groups
 INCLUDE_TRANSITIVE = True  # True = include nested group users
 OUTPUT_FILE = f"entra_users_{GROUP_NAME}.csv"
 
